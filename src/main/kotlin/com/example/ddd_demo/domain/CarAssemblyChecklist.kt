@@ -1,26 +1,38 @@
 package com.example.ddd_demo.domain
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.annotation.Version
-import org.springframework.data.relational.core.mapping.Column
-import org.springframework.data.relational.core.mapping.MappedCollection
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.OneToMany
+import jakarta.persistence.Version
 import java.time.Instant
+import java.util.NoSuchElementException
 import java.util.UUID
 
+@Entity
 data class CarAssemblyChecklist(
     @Id val id: UUID,
 
-    @MappedCollection(idColumn = "car_assembly_checklist_id", keyColumn = "id")
-    val tasks: List<CarAssemblyTask>,
+    @OneToMany(cascade = [CascadeType.ALL], orphanRemoval = true)
+    @JoinColumn(name = "car_assembly_checklist_id")
+    val tasks: List<CarAssemblyTask> = mutableListOf(),
 ) {
     val completedTasksCount: Int
         get() = tasks.count { task -> task.completedOn != null }
 
     fun completeTask(taskIndex: Int, completedBy: String) {
-        tasks[taskIndex].completeTask(completedBy)
+        val foundTask: CarAssemblyTask? = tasks.find { task -> task.taskIndex == taskIndex }
+        
+        if (foundTask == null) {
+            throw NoSuchElementException("Task not found with index $taskIndex in checklist $id") 
+        }
+        
+        foundTask.completeTask(completedBy)
     }
 
-    @Column("created_on")
+    @Column(name =  "created_on")
     private var _createdOn: Instant = Instant.now()
     val createdOn: Instant
         get() = _createdOn
@@ -29,7 +41,10 @@ data class CarAssemblyChecklist(
     private var version: Int = 0
 }
 
+@Entity
 data class CarAssemblyTask(
+    @Id val id: UUID = UUID.randomUUID(),
+    val taskIndex: Int,
     val description: String,
 ) {
     fun completeTask(newCompletedBy: String) {
@@ -37,7 +52,7 @@ data class CarAssemblyTask(
         completedBy = newCompletedBy
     }
 
-    @Column("completed_on")
+    @Column(name =  "completed_on")
     private var _completedOn: Instant? = null
     var completedOn: Instant?
         get() = _completedOn
@@ -45,11 +60,14 @@ data class CarAssemblyTask(
             _completedOn = value
         }
 
-    @Column("completed_by")
+    @Column(name =  "completed_by")
     private var _completedBy: String? = null
     var completedBy: String?
         get() = _completedBy
         private set(value) {
             _completedBy = value
         }
+
+    @Version
+    private var version: Int = 0
 }
