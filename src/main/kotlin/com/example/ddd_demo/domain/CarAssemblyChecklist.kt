@@ -3,21 +3,18 @@ package com.example.ddd_demo.domain
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Column
-import org.springframework.data.relational.core.mapping.MappedCollection
 import java.time.Instant
 import java.util.UUID
 
 data class CarAssemblyChecklist(
     @Id val id: UUID,
-
-    @MappedCollection(idColumn = "car_assembly_checklist_id", keyColumn = "id")
-    val tasks: List<CarAssemblyTask>,
+    val tasks: TasksWrapper,
 ) {
     val completedTasksCount: Int
-        get() = tasks.count { task -> task.completedOn != null }
+        get() = tasks.innerTasks.count { task -> task.completedOn != null }
 
     fun completeTask(taskIndex: Int, completedBy: String) {
-        tasks[taskIndex].completeTask(completedBy)
+        tasks.innerTasks[taskIndex].completeTask(completedBy)
     }
 
     @Column("created_on")
@@ -28,6 +25,8 @@ data class CarAssemblyChecklist(
     @Version
     private var version: Int = 0
 }
+
+data class TasksWrapper(val innerTasks: List<CarAssemblyTask>)
 
 data class CarAssemblyTask(
     val description: String,

@@ -4,10 +4,10 @@ import com.example.ddd_demo.domain.CarAssemblyChecklist
 import com.example.ddd_demo.domain.CarAssemblyChecklistRepository
 import com.example.ddd_demo.domain.CarAssemblyTask
 import com.example.ddd_demo.domain.CarAssemblyTasksFactory
+import com.example.ddd_demo.domain.TasksWrapper
 import com.example.ddd_demo.web.StartAssemblingCarRequest
 import org.postgresql.util.PSQLException
 import org.slf4j.LoggerFactory
-import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.retry.annotation.Backoff
 import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
@@ -39,9 +39,10 @@ class StartAssemblingCarUseCase(
                     val customizations = request.customizations
                     val carAssemblyTasks: List<CarAssemblyTask> =
                         carAssemblyTasksFactory.create(carModel, customizations)
+                    val tasksWrapper = TasksWrapper(carAssemblyTasks)
                     val checklist = CarAssemblyChecklist(
                         id = request.carChecklistId,
-                        tasks = carAssemblyTasks
+                        tasks = tasksWrapper,
                     )
                     carAssemblyChecklistRepository.save(checklist)
                     log.info(" >>> Car Checklist created: [${checklist.id}]")

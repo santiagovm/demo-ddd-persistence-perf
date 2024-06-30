@@ -71,6 +71,7 @@ class JourneyTest @Autowired constructor(private val client: WebTestClient) {
         .bodyValue(
             """
             {
+                "carChecklistId": "${UUID.randomUUID()}",
                 "carModel": {
                     "make": "some make",
                     "trim": "some trim"

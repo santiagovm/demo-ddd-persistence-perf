@@ -41,6 +41,9 @@ dependencies {
     // spring retry
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.retry:spring-retry")
+
+    // help jackson with dates via Jackson2JsonObjectMapper
+    implementation("org.springframework.integration:spring-integration-core")
 }
 
 kotlin {
