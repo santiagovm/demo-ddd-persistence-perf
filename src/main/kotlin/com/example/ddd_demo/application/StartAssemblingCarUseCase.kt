@@ -5,8 +5,13 @@ import com.example.ddd_demo.domain.CarAssemblyChecklistRepository
 import com.example.ddd_demo.domain.CarAssemblyTask
 import com.example.ddd_demo.domain.CarAssemblyTasksFactory
 import com.example.ddd_demo.web.StartAssemblingCarRequest
+import org.postgresql.util.PSQLException
 import org.slf4j.LoggerFactory
+import org.springframework.dao.OptimisticLockingFailureException
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 @Service
@@ -15,17 +20,34 @@ class StartAssemblingCarUseCase(
     private val carAssemblyTasksFactory: CarAssemblyTasksFactory,
 ) {
     private val log = LoggerFactory.getLogger(StartAssemblingCarUseCase::class.java)
-    
+
+    @Transactional
+    @Retryable(
+        value = [PSQLException::class],
+        maxAttempts = 5,
+        backoff = Backoff(delay = 250) // 250 ms delay between retries
+    )
     fun execute(request: StartAssemblingCarRequest): UUID {
-        val carModel = request.carModel
-        val customizations = request.customizations
-        val carAssemblyTasks: List<CarAssemblyTask> = carAssemblyTasksFactory.create(carModel, customizations)
-        val checklist = CarAssemblyChecklist(
-            id = request.carChecklistId,
-            tasks = carAssemblyTasks
-        )
-        carAssemblyChecklistRepository.save(checklist)
-        log.info(" >>> car assembly started: [${checklist.id}]")
-        return checklist.id
+        carAssemblyChecklistRepository
+            .findById(request.carChecklistId)
+            .ifPresentOrElse(
+                {
+                    log.info(" >>> Car Checklist already exists: [${request.carChecklistId}]")
+                },
+                {
+                    val carModel = request.carModel
+                    val customizations = request.customizations
+                    val carAssemblyTasks: List<CarAssemblyTask> =
+                        carAssemblyTasksFactory.create(carModel, customizations)
+                    val checklist = CarAssemblyChecklist(
+                        id = request.carChecklistId,
+                        tasks = carAssemblyTasks
+                    )
+                    carAssemblyChecklistRepository.save(checklist)
+                    log.info(" >>> Car Checklist created: [${checklist.id}]")
+                }
+            )
+
+        return request.carChecklistId
     }
 }

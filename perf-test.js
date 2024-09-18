@@ -1,17 +1,21 @@
-import http from 'k6/http'
 import {check, sleep} from 'k6'
+import {SharedArray} from 'k6/data'
 import exec from 'k6/execution'
-import {SharedArray} from 'k6/data';
+import http from 'k6/http'
+import {uuidv4} from 'https://jslib.k6.io/k6-utils/1.4.0/index.js'
 
-const carChecklistsCount = 10
-const tasksPerChecklistCount = 20
+const carChecklistsCount = 2000
+const tasksPerChecklistCount = 750
 
 export const options = {
   scenarios: {
     default: {
-      executor: 'constant-vus',
-      vus: 2,
-      duration: '15s',
+      executor: 'ramping-vus',
+      startVUs: 1,
+      stages: [
+        {target: 50, duration: '30s'},
+        {target: 50, duration: '30s'},
+      ],
     }
   }
 }
@@ -38,30 +42,22 @@ function getNextTask() {
 const carChecklistIds = new SharedArray(
   'car-checklist-ids',
   function () {
-    const uuidList = [];
+    const uuidList = []
     for (let i = 0; i < carChecklistsCount; i++) {
-      uuidList.push(generateUUID())
+      uuidList.push(uuidv4())
     }
-    return uuidList;
+    return uuidList
   }
 )
 
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  })
-}
-
 function markTaskCompleted(taskInfo) {
-  
+
   const isFirstTask = taskInfo.taskIndex === 0
-  
+
   if (isFirstTask) {
     startAssemblingCar(taskInfo.carChecklistId)
   }
-  
+
   const requestBody = {
     completedBy: 'santi'
   }
@@ -71,10 +67,26 @@ function markTaskCompleted(taskInfo) {
     JSON.stringify(requestBody),
     {headers: {'Content-Type': 'application/json'}}
   )
-  
-  console.log(`Result Code: [${res.status}] VU: [${exec.vu.idInTest}], Iteration: [${exec.scenario.iterationInInstance}]`)
-  
-  check(res, {'status was 200': r => r.status === 200})
+
+  // console.log(`Complete Result Code1: [${res.status}] VU: [${exec.vu.idInTest}], Iteration: [${exec.scenario.iterationInInstance}]`)
+
+  const checklistNotFound = res.status === 404
+
+  if (checklistNotFound) {
+    startAssemblingCar(taskInfo.carChecklistId)
+
+    const res2 = http.put(
+      `http://localhost:8080/api/v1/assembly/${taskInfo.carChecklistId}/tasks/${taskInfo.taskIndex}/complete`,
+      JSON.stringify(requestBody),
+      {headers: {'Content-Type': 'application/json'}}
+    )
+
+    // console.log(`Complete Result Code2: [${res2.status}] VU: [${exec.vu.idInTest}], Iteration: [${exec.scenario.iterationInInstance}]`)
+
+    check(res2, {'status was 200': r => r.status === 200})
+  } else {
+    check(res, {'status was 200': r => r.status === 200})
+  }
 }
 
 function startAssemblingCar(carChecklistId) {
@@ -99,6 +111,8 @@ function startAssemblingCar(carChecklistId) {
     JSON.stringify(requestBody),
     {headers: {'Content-Type': 'application/json'}}
   )
+
+  // console.log(`Start Result Code: [${res.status}] VU: [${exec.vu.idInTest}], Iteration: [${exec.scenario.iterationInInstance}]`)
 
   check(res, {'status was 201': r => r.status === 201})
 }

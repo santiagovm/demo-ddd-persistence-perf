@@ -28,7 +28,7 @@ dependencies {
 	implementation("org.flywaydb:flyway-database-postgresql")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-	runtimeOnly("org.postgresql:postgresql")
+	implementation("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.boot:spring-boot-testcontainers")
 	testImplementation("io.projectreactor:reactor-test")
@@ -37,6 +37,10 @@ dependencies {
 	testImplementation("org.testcontainers:postgresql")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+    
+    // spring retry
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springframework.retry:spring-retry")
 }
 
 kotlin {
