@@ -13,12 +13,7 @@ import org.springframework.stereotype.Component
 class LoggingRetryListener : RetryListener {
 
     private val log = LoggerFactory.getLogger(LoggingRetryListener::class.java)
-
-    override fun <T : Any?, E : Throwable?> open(context: RetryContext?, callback: RetryCallback<T, E>?): Boolean {
-        log.info(" >>> open retry count [${context?.retryCount}]")
-        return super.open(context, callback)
-    }
-
+    
     override fun <T : Any?, E : Throwable?> onError(
         context: RetryContext?,
         callback: RetryCallback<T, E>?,
@@ -34,7 +29,7 @@ class LoggingRetryListener : RetryListener {
         throwable: Throwable?
     ) {
         if (throwable != null) {
-            log.info(" >>> all retries failed after ${context?.retryCount} attempts")
+            log.info(" >>> all retries failed after [${context?.retryCount}] attempts")
         }
         super.close(context, callback, throwable)
     }
