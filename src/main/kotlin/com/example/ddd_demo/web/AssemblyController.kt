@@ -28,8 +28,11 @@ class AssemblyController(
         @RequestBody request: StartAssemblingCarRequest,
         uriComponentsBuilder: UriComponentsBuilder,
     ): ResponseEntity<Unit> {
-        val carId: UUID = startAssemblingCarUseCase.execute(request.carModel, request.customizations)
-        val location = uriComponentsBuilder.path("/api/v1/assembly/{id}").buildAndExpand(carId).toUri()
+        startAssemblingCarUseCase.execute(request)
+        val location = uriComponentsBuilder
+            .path("/api/v1/assembly/{id}")
+            .buildAndExpand(request.carChecklistId)
+            .toUri()
         return ResponseEntity.created(location).build()
     }
 
@@ -54,7 +57,11 @@ class AssemblyController(
     }
 }
 
-data class StartAssemblingCarRequest(val carModel: CarModel, val customizations: List<CarCustomization>)
+data class StartAssemblingCarRequest(
+    val carChecklistId: UUID,
+    val carModel: CarModel,
+    val customizations: List<CarCustomization>
+)
 
 data class AssemblyStatusResponse(val tasksCompletedCount: Int)
 

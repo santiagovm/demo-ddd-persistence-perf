@@ -4,8 +4,7 @@ import com.example.ddd_demo.domain.CarAssemblyChecklist
 import com.example.ddd_demo.domain.CarAssemblyChecklistRepository
 import com.example.ddd_demo.domain.CarAssemblyTask
 import com.example.ddd_demo.domain.CarAssemblyTasksFactory
-import com.example.ddd_demo.domain.CarCustomization
-import com.example.ddd_demo.domain.CarModel
+import com.example.ddd_demo.web.StartAssemblingCarRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -17,9 +16,14 @@ class StartAssemblingCarUseCase(
 ) {
     private val log = LoggerFactory.getLogger(StartAssemblingCarUseCase::class.java)
     
-    fun execute(carModel: CarModel, customizations: List<CarCustomization>): UUID {
+    fun execute(request: StartAssemblingCarRequest): UUID {
+        val carModel = request.carModel
+        val customizations = request.customizations
         val carAssemblyTasks: List<CarAssemblyTask> = carAssemblyTasksFactory.create(carModel, customizations)
-        val checklist = CarAssemblyChecklist(tasks = carAssemblyTasks)
+        val checklist = CarAssemblyChecklist(
+            id = request.carChecklistId,
+            tasks = carAssemblyTasks
+        )
         carAssemblyChecklistRepository.save(checklist)
         log.info(" >>> car assembly started: [${checklist.id}]")
         return checklist.id

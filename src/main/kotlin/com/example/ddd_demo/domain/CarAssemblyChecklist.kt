@@ -8,7 +8,7 @@ import java.time.Instant
 import java.util.UUID
 
 data class CarAssemblyChecklist(
-    @Id val id: UUID = UUID.randomUUID(),
+    @Id val id: UUID,
 
     @MappedCollection(idColumn = "car_assembly_checklist_id", keyColumn = "id")
     val tasks: List<CarAssemblyTask>,
